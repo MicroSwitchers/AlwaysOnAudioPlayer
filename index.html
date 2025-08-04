@@ -1,0 +1,629 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Online Radio & Media Player</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            -webkit-tap-highlight-color: transparent;
+            background-color: #111827; /* Deep dark background */
+        }
+        .station-item:hover {
+            background-color: #374151; /* Softer hover for dark mode */
+        }
+        .genre-btn, .action-btn {
+            transition: all 0.2s ease-in-out;
+        }
+        .genre-btn:hover, .action-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 20px rgba(0,0,0,0.25);
+        }
+        .action-btn:active {
+            transform: translateY(0);
+            box-shadow: none;
+        }
+        
+        /* Hide the default audio player */
+        audio {
+            display: none;
+        }
+
+        /* Glassmorphism Player Background */
+        #fullscreen-player {
+            background-color: rgba(20, 20, 30, 0.5);
+            backdrop-filter: blur(40px) saturate(180%);
+            -webkit-backdrop-filter: blur(40px) saturate(180%);
+            transition: opacity 0.5s ease-in-out;
+        }
+        
+        /* Animated Aurora Background */
+        #fullscreen-player::before {
+            content: '';
+            position: absolute;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: linear-gradient(125deg, #2563eb, #7c3aed, #db2777);
+            background-size: 400% 400%;
+            animation: gradientBG 20s ease infinite;
+            z-index: -1;
+            opacity: 0.6;
+        }
+
+        @keyframes gradientBG {
+            0% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+            100% { background-position: 0% 50%; }
+        }
+
+        /* Custom Volume Slider */
+        input[type=range] { -webkit-appearance: none; width: 100%; background: transparent; }
+        input[type=range]:focus { outline: none; }
+        input[type=range]::-webkit-slider-runnable-track { width: 100%; height: 4px; cursor: pointer; background: rgba(255, 255, 255, 0.3); border-radius: 5px; }
+        input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; height: 16px; width: 16px; border-radius: 50%; background: #ffffff; cursor: pointer; margin-top: -6px; }
+
+        /* Styling for the new tabs */
+        .tab-btn.active {
+            color: #6366f1;
+            border-bottom-color: #6366f1;
+        }
+    </style>
+</head>
+<body class="text-slate-300">
+
+    <div id="main-content" class="container mx-auto p-4 max-w-5xl">
+        <header class="text-center mb-10">
+            <h1 class="text-4xl sm:text-5xl font-bold text-slate-100">Media Player</h1>
+            <p class="text-lg text-slate-400 mt-2">Listen to online radio or your local files</p>
+        </header>
+
+        <main class="space-y-8">
+            <!-- Controls Card -->
+            <div class="bg-slate-800/50 backdrop-blur-sm p-5 sm:p-6 rounded-xl shadow-2xl border border-slate-700">
+                <div class="flex justify-between items-center mb-4">
+                    <h2 class="text-2xl font-semibold text-slate-100">Media Source</h2>
+                    <div class="flex gap-2">
+                        <button id="load-files-btn" class="bg-indigo-600 text-white px-4 py-2 rounded-lg font-semibold hover:bg-indigo-700 text-sm">
+                            <i class="fas fa-folder-open mr-2"></i>Load Local Files
+                        </button>
+                        <button id="toggleSearchBtn" class="bg-slate-700 text-slate-300 px-4 py-2 rounded-lg font-semibold hover:bg-slate-600 text-sm">
+                            <i class="fas fa-search mr-2"></i>Radio Search
+                        </button>
+                    </div>
+                </div>
+                <div id="genre-buttons" class="flex flex-wrap gap-3">
+                    <!-- Genre buttons will be injected here -->
+                </div>
+            </div>
+            <input type="file" id="file-input" multiple accept=".mp3,.flac" class="hidden">
+
+
+            <!-- Search Section (hidden by default) -->
+            <div id="search-section" class="hidden search-section bg-slate-800/50 backdrop-blur-sm p-6 rounded-xl shadow-2xl border border-slate-700">
+                <h2 class="text-2xl font-semibold mb-4 text-slate-100">Search for a Station</h2>
+                <div class="flex flex-col sm:flex-row gap-4">
+                    <input type="text" id="searchInput" class="flex-grow p-3 bg-slate-700 border border-slate-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 text-white" placeholder="Enter station name, genre, or country...">
+                    <button id="searchButton" class="bg-indigo-600 text-white px-6 py-3 rounded-lg font-semibold hover:bg-indigo-700">Search</button>
+                </div>
+            </div>
+
+            <!-- Station Lists Card with Tabs -->
+            <div class="bg-slate-800/50 backdrop-blur-sm rounded-xl shadow-2xl border border-slate-700">
+                <!-- Tab Navigation -->
+                <div class="border-b border-slate-700">
+                    <nav class="flex -mb-px" aria-label="Tabs">
+                        <button id="tab-results" class="tab-btn active w-1/2 py-4 px-1 text-center border-b-2 font-medium text-lg text-slate-400 hover:text-indigo-400 hover:border-indigo-400">
+                          Playlist
+                        </button>
+                        <button id="tab-favorites" class="tab-btn w-1/2 py-4 px-1 text-center border-b-2 font-medium text-lg text-slate-400 hover:text-indigo-400 hover:border-indigo-400">
+                          Favorites
+                        </button>
+                    </nav>
+                </div>
+                
+                <!-- Tab Content -->
+                <div class="p-2 sm:p-4">
+                    <div id="station-list-panel">
+                        <div id="station-list" class="space-y-1 max-h-[50vh] overflow-y-auto">
+                            <p class="px-4 py-8 text-center text-slate-400">Select a genre or load local files to start.</p>
+                        </div>
+                    </div>
+                    <div id="favorites-panel" class="hidden">
+                         <div id="favorites" class="space-y-1 max-h-[50vh] overflow-y-auto">
+                            <p class="px-4 py-8 text-center text-slate-400">No favorite stations saved.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+
+        <footer class="text-center mt-12 text-slate-500 text-sm">
+            <p>Powered by the <a href="https://www.radio-browser.info/" target="_blank" class="text-indigo-400 hover:underline">Radio Browser API</a></p>
+        </footer>
+    </div>
+
+    <!-- Full Screen Player -->
+    <div id="fullscreen-player" class="hidden fixed inset-0 text-white p-8 flex flex-col justify-between items-center z-50">
+        <!-- Top button -->
+        <div class="w-full flex justify-end">
+             <button id="minimize-btn" class="action-btn bg-white/10 text-white w-12 h-12 rounded-full font-semibold hover:bg-white/20 flex items-center justify-center">
+                <i class="fas fa-chevron-down"></i>
+             </button>
+        </div>
+
+        <!-- Main Content -->
+        <div class="text-center -mt-16">
+            <div id="fullscreen-station-icon-container" class="w-40 h-40 rounded-2xl mx-auto mb-8 shadow-lg bg-slate-700 flex items-center justify-center">
+                <img id="fullscreen-station-icon" src="" class="w-full h-full rounded-2xl object-cover">
+            </div>
+            <p id="fullscreen-playing-name" class="text-4xl font-bold mb-2"></p>
+            <p id="fullscreen-playing-tags" class="text-lg text-slate-300 opacity-80"></p>
+        </div>
+
+        <!-- Custom Controls -->
+        <div class="w-full max-w-md">
+             <div class="flex items-center gap-4">
+                <i class="fas fa-volume-off text-white/50"></i>
+                <input id="volume-slider" type="range" min="0" max="1" step="0.01" value="1" class="w-full">
+                <i class="fas fa-volume-up text-white/80"></i>
+            </div>
+            <div class="flex items-center justify-center gap-8 mt-4">
+                <button id="prev-btn" class="action-btn bg-white/10 text-white w-16 h-16 rounded-full font-semibold text-xl flex items-center justify-center">
+                    <i class="fas fa-backward-step"></i>
+                </button>
+                <button id="play-pause-btn" class="action-btn bg-white text-slate-900 w-20 h-20 rounded-full font-semibold text-3xl flex items-center justify-center">
+                    <i id="play-pause-icon" class="fas fa-pause"></i>
+                </button>
+                 <button id="next-btn" class="action-btn bg-white/10 text-white w-16 h-16 rounded-full font-semibold text-xl flex items-center justify-center">
+                    <i class="fas fa-forward-step"></i>
+                </button>
+            </div>
+        </div>
+        <audio id="audioPlayer"></audio>
+    </div>
+
+    <!-- Minimized Player Bar -->
+    <div id="minimized-player" class="hidden fixed bottom-0 left-0 right-0 bg-slate-900/80 backdrop-blur-sm text-white p-3 shadow-lg z-40 flex justify-between items-center cursor-pointer">
+        <div class="flex items-center gap-3 flex-grow truncate">
+            <div id="minimized-station-icon-container" class="w-10 h-10 rounded-md flex-shrink-0 bg-slate-700 flex items-center justify-center">
+                 <img id="minimized-station-icon" src="" class="w-full h-full rounded-md object-cover">
+            </div>
+            <p class="font-bold text-md truncate" id="minimized-playing-name"></p>
+        </div>
+        <button id="stop-btn-minimized" class="action-btn bg-red-600 text-white w-10 h-10 rounded-full font-semibold hover:bg-red-700 flex-shrink-0 flex items-center justify-center">
+            <i class="fas fa-stop"></i>
+        </button>
+    </div>
+
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getAuth, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, doc, setDoc, deleteDoc, collection, onSnapshot } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+        // --- Firebase Configuration ---
+        const firebaseConfig = { /* Auto-populated */ };
+        let app, db, auth, userId;
+
+        // --- App State & Constants ---
+        const RADIO_API_BASE = 'https://de1.api.radio-browser.info/json';
+        const GENRES = ['Classical', 'Jazz', 'Blues', 'Opera', 'Piano', 'Baroque', 'Classical Guitar', 'Light Jazz', 'Chamber Music'];
+        const PLACEHOLDER_COLORS = ['#ef4444', '#f97316', '#eab308', '#84cc16', '#22c55e', '#14b8a6', '#06b6d4', '#3b82f6', '#8b5cf6', '#d946ef'];
+        let currentPlaylist = [];
+        let currentTrackIndex = -1;
+        let isLocalMode = false;
+
+        // --- DOM Elements ---
+        const mainContent = document.getElementById('main-content');
+        const genreButtonsContainer = document.getElementById('genre-buttons');
+        const toggleSearchBtn = document.getElementById('toggleSearchBtn');
+        const searchSection = document.getElementById('search-section');
+        const searchInput = document.getElementById('searchInput');
+        const searchButton = document.getElementById('searchButton');
+        const stationListContainer = document.getElementById('station-list');
+        const favoritesContainer = document.getElementById('favorites');
+        const stationListPanel = document.getElementById('station-list-panel');
+        const favoritesPanel = document.getElementById('favorites-panel');
+        const tabResults = document.getElementById('tab-results');
+        const tabFavorites = document.getElementById('tab-favorites');
+        const fileInput = document.getElementById('file-input');
+        const loadFilesBtn = document.getElementById('load-files-btn');
+        
+        // Player Elements
+        const audioPlayer = document.getElementById('audioPlayer');
+        const fullscreenPlayer = document.getElementById('fullscreen-player');
+        const fullscreenStationIcon = document.getElementById('fullscreen-station-icon');
+        const fullscreenStationIconContainer = document.getElementById('fullscreen-station-icon-container');
+        const fullscreenPlayingName = document.getElementById('fullscreen-playing-name');
+        const fullscreenPlayingTags = document.getElementById('fullscreen-playing-tags');
+        const minimizeBtn = document.getElementById('minimize-btn');
+        const playPauseBtn = document.getElementById('play-pause-btn');
+        const playPauseIcon = document.getElementById('play-pause-icon');
+        const volumeSlider = document.getElementById('volume-slider');
+        const prevBtn = document.getElementById('prev-btn');
+        const nextBtn = document.getElementById('next-btn');
+        
+        const minimizedPlayer = document.getElementById('minimized-player');
+        const minimizedStationIcon = document.getElementById('minimized-station-icon');
+        const minimizedStationIconContainer = document.getElementById('minimized-station-icon-container');
+        const minimizedPlayingName = document.getElementById('minimized-playing-name');
+        const stopBtnMinimized = document.getElementById('stop-btn-minimized');
+        
+
+        // --- App Initialization ---
+        async function initialize() {
+            // Firebase setup
+            try {
+                const fbConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : firebaseConfig;
+                app = initializeApp(fbConfig);
+                db = getFirestore(app);
+                auth = getAuth(app);
+                
+                onAuthStateChanged(auth, user => {
+                    if (user) {
+                        userId = user.uid;
+                        listenForFavoriteChanges();
+                    } else {
+                        signInAnonymously(auth).catch(err => console.error("Anonymous sign-in failed:", err));
+                    }
+                });
+            } catch (error) {
+                console.error("Firebase initialization failed:", error);
+                stationListContainer.innerHTML = `<p class="text-red-500">Error: Could not connect to the database. Favorites will not be available.</p>`;
+            }
+
+            // UI setup
+            createGenreButtons();
+            toggleSearchBtn.addEventListener('click', () => searchSection.classList.toggle('hidden'));
+            searchButton.addEventListener('click', searchStationsManually);
+            searchInput.addEventListener('keypress', e => { if (e.key === 'Enter') searchStationsManually(); });
+            
+            // Local file setup
+            loadFilesBtn.addEventListener('click', () => fileInput.click());
+            fileInput.addEventListener('change', handleFileSelection);
+
+            // Tab listeners
+            tabResults.addEventListener('click', () => showTab('results'));
+            tabFavorites.addEventListener('click', () => showTab('favorites'));
+
+            // Player controls
+            minimizeBtn.addEventListener('click', minimizePlayerView);
+            playPauseBtn.addEventListener('click', togglePlayPause);
+            volumeSlider.addEventListener('input', (e) => audioPlayer.volume = e.target.value);
+            audioPlayer.addEventListener('play', () => playPauseIcon.className = 'fas fa-pause');
+            audioPlayer.addEventListener('pause', () => playPauseIcon.className = 'fas fa-play');
+            audioPlayer.addEventListener('ended', playNextTrack);
+            prevBtn.addEventListener('click', playPrevTrack);
+            nextBtn.addEventListener('click', playNextTrack);
+
+            stopBtnMinimized.addEventListener('click', (e) => {
+                e.stopPropagation(); 
+                stopStation();
+            });
+            minimizedPlayer.addEventListener('click', showFullscreenPlayer);
+
+            audioPlayer.addEventListener('error', (e) => {
+                console.error("Audio playback error:", e);
+                stopStation();
+                showErrorInList("Could not play this station. It might be offline or the stream format is not supported.");
+            });
+        }
+
+        function createGenreButtons() {
+            GENRES.forEach(genre => {
+                const btn = document.createElement('button');
+                btn.className = 'genre-btn bg-slate-700 text-slate-300 px-4 py-2 rounded-full font-semibold border border-slate-600 hover:bg-slate-600 hover:text-white';
+                btn.textContent = genre;
+                btn.dataset.genre = genre;
+                btn.addEventListener('click', () => searchByGenre(genre));
+                genreButtonsContainer.appendChild(btn);
+            });
+        }
+
+        // --- Helper Functions ---
+        const getRandomColor = () => PLACEHOLDER_COLORS[Math.floor(Math.random() * PLACEHOLDER_COLORS.length)];
+        const isChristmasSeason = () => new Date().getMonth() === 10 || new Date().getMonth() === 11;
+        const showErrorInList = (message) => {
+            stationListContainer.innerHTML = `<p class="text-center p-4 text-red-400">${message}</p>`;
+            showTab('results');
+        };
+
+        function showTab(tabName) {
+            if (tabName === 'results') {
+                stationListPanel.classList.remove('hidden');
+                favoritesPanel.classList.add('hidden');
+                tabResults.classList.add('active');
+                tabFavorites.classList.remove('active');
+            } else {
+                stationListPanel.classList.add('hidden');
+                favoritesPanel.classList.remove('hidden');
+                tabResults.classList.remove('active');
+                tabFavorites.classList.add('active');
+            }
+        }
+
+        // --- Radio Station Functions ---
+        async function searchByGenre(genre) {
+            stationListContainer.innerHTML = '<p class="text-center p-4 text-slate-400">Searching...</p>';
+            showTab('results');
+            const tagList = genre.toLowerCase().replace(/\s+/g, ',');
+            try {
+                const response = await fetch(`${RADIO_API_BASE}/stations/search?tagList=${encodeURIComponent(tagList)}&limit=150&hidebroken=true`);
+                handleApiResponse(response);
+            } catch (error) {
+                handleApiError(error);
+            }
+        }
+
+        async function searchStationsManually() {
+            const query = searchInput.value.trim();
+            if (!query) return;
+            stationListContainer.innerHTML = '<p class="text-center p-4 text-slate-400">Searching...</p>';
+            showTab('results');
+            try {
+                const response = await fetch(`${RADIO_API_BASE}/stations/byname/${encodeURIComponent(query)}?limit=150&hidebroken=true`);
+                handleApiResponse(response);
+            } catch (error) {
+                handleApiError(error);
+            }
+        }
+
+        async function handleApiResponse(response) {
+            if (!response.ok) throw new Error(`API request failed with status ${response.status}`);
+            let stations = await response.json();
+            
+            const arabicCharRegex = /[\u0600-\u06FF]/;
+
+            // Filter out unwanted stations
+            stations = stations.filter(station => {
+                const stationName = station.name.toLowerCase();
+                
+                if (!isChristmasSeason() && stationName.includes('christmas')) return false;
+                if (stationName.includes('quran')) return false;
+                if (station.countrycode === 'SA') return false;
+                if (arabicCharRegex.test(station.name)) return false;
+                
+                return station.bitrate > 0;
+            });
+            isLocalMode = false;
+            currentPlaylist = stations;
+            displayItems(stations, stationListContainer, false);
+        }
+
+        function handleApiError(error) {
+            console.error(`Error fetching stations:`, error);
+            showErrorInList("Error fetching stations. Please try again later.");
+        }
+
+        function displayItems(items, container, isFavoriteList) {
+            container.innerHTML = '';
+            if (items.length === 0) {
+                container.innerHTML = `<p class="px-4 py-8 text-center text-slate-400">${isFavoriteList ? 'No favorite stations saved.' : 'No items found.'}</p>`;
+                return;
+            }
+
+            const highBitrateItems = isLocalMode ? items : items.filter(s => s.bitrate >= 128);
+            const lowBitrateItems = isLocalMode ? [] : items.filter(s => s.bitrate < 128);
+
+            const renderGroup = (itemList, title) => {
+                if (itemList.length === 0) return;
+
+                if (title) {
+                    const groupHeader = document.createElement('h3');
+                    groupHeader.className = 'px-4 pt-4 pb-2 text-lg font-semibold text-slate-300 tracking-wider';
+                    groupHeader.textContent = title;
+                    container.appendChild(groupHeader);
+                }
+                
+                itemList.forEach((item, index) => {
+                    const stationEl = document.createElement('div');
+                    stationEl.className = 'station-item p-3 rounded-lg flex items-center justify-between gap-4';
+                    
+                    const isFile = item instanceof File;
+                    const iconSrc = isFile ? null : item.favicon;
+                    const name = isFile ? item.name : item.name;
+                    const details = isFile ? `Local File` : `${item.country || 'Unknown'} &bull; ${item.bitrate} kbps`;
+
+                    stationEl.innerHTML = `
+                        <div class="flex items-center gap-4 truncate">
+                            <div class="icon-container w-12 h-12 rounded-full flex-shrink-0 bg-slate-700 flex items-center justify-center">
+                                <img src="${iconSrc || ''}" class="w-full h-full rounded-full object-cover">
+                            </div>
+                            <div class="truncate">
+                                <h3 class="font-semibold text-md text-slate-200 truncate">${name}</h3>
+                                <p class="text-sm text-slate-400">${details}</p>
+                            </div>
+                        </div>
+                        <div class="buttons-container flex items-center gap-2 flex-shrink-0"></div>
+                    `;
+                    
+                    const img = stationEl.querySelector('img');
+                    img.onerror = function() {
+                        const parent = this.parentElement;
+                        parent.innerHTML = '<i class="fas fa-music text-white/80"></i>';
+                        parent.style.backgroundColor = getRandomColor();
+                    };
+                     if (isFile) { img.onerror(); }
+
+                    const buttonsDiv = stationEl.querySelector('.buttons-container');
+                    const playBtn = document.createElement('button');
+                    playBtn.className = 'action-btn bg-indigo-600 text-white w-10 h-10 rounded-full font-semibold hover:bg-indigo-700 flex items-center justify-center';
+                    playBtn.innerHTML = '<i class="fas fa-play"></i>';
+                    playBtn.onclick = () => playItem(item, isFavoriteList ? -1 : itemList.indexOf(item));
+                    buttonsDiv.appendChild(playBtn);
+
+                    if (isFavoriteList) {
+                        const removeBtn = document.createElement('button');
+                        removeBtn.className = 'action-btn bg-slate-700 text-slate-300 w-10 h-10 rounded-full font-semibold hover:bg-slate-600 flex items-center justify-center';
+                        removeBtn.innerHTML = '<i class="fas fa-trash"></i>';
+                        removeBtn.onclick = () => removeFavorite(item.stationuuid);
+                        buttonsDiv.appendChild(removeBtn);
+                    } else if (!isFile) {
+                        const favBtn = document.createElement('button');
+                        favBtn.className = 'action-btn bg-slate-700 text-slate-300 w-10 h-10 rounded-full font-semibold hover:bg-slate-600 flex items-center justify-center';
+                        favBtn.innerHTML = '<i class="far fa-heart"></i>';
+                        favBtn.onclick = (event) => addFavorite(item, event.currentTarget);
+                        buttonsDiv.appendChild(favBtn);
+                    }
+                    container.appendChild(stationEl);
+                });
+            };
+            
+            if (isLocalMode) {
+                renderGroup(highBitrateItems, null);
+            } else {
+                renderGroup(highBitrateItems, 'High Quality');
+                renderGroup(lowBitrateItems, 'Standard Quality');
+            }
+        }
+
+        // --- Local File Handling ---
+        function handleFileSelection(event) {
+            const files = Array.from(event.target.files);
+            if (files.length === 0) return;
+            isLocalMode = true;
+            currentPlaylist = files;
+            displayItems(files, stationListContainer, false);
+            showTab('results');
+        }
+
+        // --- Player View Functions ---
+        async function playItem(item, index) {
+            audioPlayer.pause();
+            audioPlayer.src = '';
+            currentTrackIndex = index;
+
+            const isFile = item instanceof File;
+            const streamUrl = isFile ? URL.createObjectURL(item) : item.url_resolved || item.url;
+            
+            if (!streamUrl) {
+                showErrorInList("This item does not have a valid stream URL.");
+                return;
+            }
+            
+            audioPlayer.src = streamUrl;
+            
+            try {
+                await audioPlayer.play();
+                const iconSrc = isFile ? null : item.favicon;
+                fullscreenStationIcon.src = iconSrc || '';
+                minimizedStationIcon.src = iconSrc || '';
+                fullscreenPlayingName.textContent = isFile ? item.name : item.name;
+                fullscreenPlayingTags.textContent = isFile ? 'Local File' : (item.tags || 'No tags');
+                minimizedPlayingName.textContent = `${isFile ? item.name : item.name}`;
+
+                const setupIcon = (iconEl, containerEl) => {
+                    if (isFile || !iconSrc) {
+                        containerEl.innerHTML = '<i class="fas fa-music text-5xl text-white/80"></i>';
+                        containerEl.style.backgroundColor = getRandomColor();
+                    } else {
+                        containerEl.innerHTML = '';
+                        containerEl.appendChild(iconEl);
+                        iconEl.onerror = function() {
+                            containerEl.innerHTML = '<i class="fas fa-music text-5xl text-white/80"></i>';
+                            containerEl.style.backgroundColor = getRandomColor();
+                        };
+                    }
+                };
+                setupIcon(fullscreenStationIcon, fullscreenStationIconContainer);
+                setupIcon(minimizedStationIcon, minimizedStationIconContainer);
+
+                // Show/hide next/prev buttons
+                const playlistControlsVisibility = isLocalMode ? 'flex' : 'none';
+                prevBtn.style.display = playlistControlsVisibility;
+                nextBtn.style.display = playlistControlsVisibility;
+
+                showFullscreenPlayer();
+            } catch (error) {
+                if (error.name !== 'AbortError') {
+                    console.error("Play() promise rejected:", error);
+                }
+            }
+        }
+
+        function playNextTrack() {
+            if (!isLocalMode || currentPlaylist.length === 0) return;
+            currentTrackIndex = (currentTrackIndex + 1) % currentPlaylist.length;
+            playItem(currentPlaylist[currentTrackIndex], currentTrackIndex);
+        }
+
+        function playPrevTrack() {
+            if (!isLocalMode || currentPlaylist.length === 0) return;
+            currentTrackIndex = (currentTrackIndex - 1 + currentPlaylist.length) % currentPlaylist.length;
+            playItem(currentPlaylist[currentTrackIndex], currentTrackIndex);
+        }
+
+        function togglePlayPause() {
+            if (audioPlayer.paused) {
+                audioPlayer.play();
+            } else {
+                audioPlayer.pause();
+            }
+        }
+
+        function stopStation() {
+            audioPlayer.pause();
+            audioPlayer.src = '';
+            fullscreenPlayer.classList.add('hidden');
+            minimizedPlayer.classList.add('hidden');
+            mainContent.classList.remove('hidden');
+        }
+
+        function showFullscreenPlayer() {
+            fullscreenPlayer.classList.remove('hidden');
+            minimizedPlayer.classList.add('hidden');
+            mainContent.classList.add('hidden');
+        }
+
+        function minimizePlayerView() {
+            fullscreenPlayer.classList.add('hidden');
+            minimizedPlayer.classList.remove('hidden');
+            mainContent.classList.remove('hidden');
+        }
+
+        // --- Firestore Favorite Functions ---
+        async function addFavorite(stationData, buttonElement) {
+            if (!userId) { alert("Sign-in required to save favorites."); return; }
+            try {
+                const favDocRef = doc(db, `artifacts/${typeof __app_id !== 'undefined' ? __app_id : 'default-app-id'}/users/${userId}/favorites`, stationData.stationuuid);
+                await setDoc(favDocRef, stationData);
+                buttonElement.innerHTML = '<i class="fas fa-heart"></i>'; // Solid heart
+                buttonElement.classList.remove('bg-slate-700', 'text-slate-300');
+                buttonElement.classList.add('bg-pink-500/20', 'text-pink-400');
+                buttonElement.disabled = true;
+            } catch (error) {
+                console.error("Error adding favorite: ", error);
+            }
+        }
+
+        async function removeFavorite(stationId) {
+            if (!userId) return;
+            try {
+                const favDocRef = doc(db, `artifacts/${typeof __app_id !== 'undefined' ? __app_id : 'default-app-id'}/users/${userId}/favorites`, stationId);
+                await deleteDoc(favDocRef);
+            } catch (error) {
+                console.error("Error removing favorite: ", error);
+            }
+        }
+        
+        function listenForFavoriteChanges() {
+            if (!userId) return;
+            const favsCollectionRef = collection(db, `artifacts/${typeof __app_id !== 'undefined' ? __app_id : 'default-app-id'}/users/${userId}/favorites`);
+            onSnapshot(favsCollectionRef, snapshot => {
+                const favorites = snapshot.docs.map(doc => doc.data());
+                displayItems(favorites, favoritesContainer, true);
+            }, error => {
+                 console.error("Error listening to favorites:", error);
+                 favoritesContainer.innerHTML = `<p class="text-red-400 text-center p-4">Could not load favorites.</p>`;
+            });
+        }
+
+        // --- Start the App ---
+        initialize();
+
+    </script>
+</body>
+</html>
