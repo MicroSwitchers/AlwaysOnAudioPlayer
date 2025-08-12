@@ -200,13 +200,6 @@
 
 
     <script type="module">
-        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
-        import { getAuth, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-        import { getFirestore, doc, setDoc, deleteDoc, collection, onSnapshot } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
-
-        // --- Firebase Configuration ---
-        const firebaseConfig = { /* Auto-populated */ };
-        let app, db, auth, userId;
 
         // --- App State & Constants ---
         const RADIO_API_BASE = 'https://de1.api.radio-browser.info/json';
@@ -215,6 +208,7 @@
         let currentPlaylist = [];
         let currentTrackIndex = -1;
         let isLocalMode = false;
+        let favorites = [];
 
         // --- DOM Elements ---
         const mainContent = document.getElementById('main-content');
@@ -255,27 +249,10 @@
 
         // --- App Initialization ---
         async function initialize() {
-            // Firebase setup
-            try {
-                const fbConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : firebaseConfig;
-                app = initializeApp(fbConfig);
-                db = getFirestore(app);
-                auth = getAuth(app);
-                
-                onAuthStateChanged(auth, user => {
-                    if (user) {
-                        userId = user.uid;
-                        listenForFavoriteChanges();
-                    } else {
-                        signInAnonymously(auth).catch(err => console.error("Anonymous sign-in failed:", err));
-                    }
-                });
-            } catch (error) {
-                console.error("Firebase initialization failed:", error);
-                stationListContainer.innerHTML = `<p class="text-red-500">Error: Could not connect to the database. Favorites will not be available.</p>`;
-            }
 
             // UI setup
+            favorites = getFavorites();
+            displayItems(favorites, favoritesContainer, true);
             createGenreButtons();
             toggleSearchBtn.addEventListener('click', () => searchSection.classList.toggle('hidden'));
             searchButton.addEventListener('click', searchStationsManually);
@@ -462,10 +439,20 @@
                         removeBtn.onclick = () => removeFavorite(item.stationuuid);
                         buttonsDiv.appendChild(removeBtn);
                     } else if (!isFile) {
+                        const isFavorited = favorites.some(fav => fav.stationuuid === item.stationuuid);
                         const favBtn = document.createElement('button');
-                        favBtn.className = 'action-btn bg-slate-700 text-slate-300 w-10 h-10 rounded-full font-semibold hover:bg-slate-600 flex items-center justify-center';
-                        favBtn.innerHTML = '<i class="far fa-heart"></i>';
-                        favBtn.onclick = (event) => addFavorite(item, event.currentTarget);
+                        favBtn.className = 'action-btn w-10 h-10 rounded-full font-semibold flex items-center justify-center';
+
+                        if (isFavorited) {
+                            favBtn.innerHTML = '<i class="fas fa-heart"></i>';
+                            favBtn.classList.add('bg-pink-500/20', 'text-pink-400');
+                            favBtn.disabled = true;
+                        } else {
+                            favBtn.innerHTML = '<i class="far fa-heart"></i>';
+                            favBtn.classList.add('bg-slate-700', 'text-slate-300', 'hover:bg-slate-600');
+                            favBtn.onclick = (event) => addFavorite(item, event.currentTarget);
+                        }
+
                         buttonsDiv.appendChild(favBtn);
                     }
                     container.appendChild(stationEl);
@@ -585,11 +572,19 @@
             mainContent.classList.remove('hidden');
         }
 
-        // --- Firestore Favorite Functions ---
-        async function addFavorite(stationData, buttonElement) {
-            if (!userId) { alert("Sign-in required to save favorites."); return; }
 
-            // It's good practice to create a clean object for Firestore
+        // --- Favorite Functions (localStorage) ---
+        function getFavorites() {
+            const favoritesString = localStorage.getItem('media-player-favorites');
+            return favoritesString ? JSON.parse(favoritesString) : [];
+        }
+
+        function saveFavorites() {
+            localStorage.setItem('media-player-favorites', JSON.stringify(favorites));
+        }
+
+        function addFavorite(stationData, buttonElement) {
+            // It's good practice to create a clean object for storage
             const favoriteData = {
                 stationuuid: stationData.stationuuid,
                 name: stationData.name,
@@ -602,41 +597,21 @@
                 bitrate: stationData.bitrate,
             };
 
-            try {
-                const favDocRef = doc(db, `artifacts/${typeof __app_id !== 'undefined' ? __app_id : 'default-app-id'}/users/${userId}/favorites`, stationData.stationuuid);
-                await setDoc(favDocRef, favoriteData);
+            favorites.push(favoriteData);
+            saveFavorites();
 
-                buttonElement.innerHTML = '<i class="fas fa-heart"></i>'; // Solid heart
-                buttonElement.classList.remove('bg-slate-700', 'text-slate-300');
-                buttonElement.classList.add('bg-pink-500/20', 'text-pink-400');
-                buttonElement.disabled = true;
-            } catch (error) {
-                console.error("Error adding favorite: ", error);
-                alert('Could not save favorite. There was an error connecting to the database.');
-            }
+            buttonElement.innerHTML = '<i class="fas fa-heart"></i>'; // Solid heart
+            buttonElement.classList.remove('bg-slate-700', 'text-slate-300');
+            buttonElement.classList.add('bg-pink-500/20', 'text-pink-400');
+            buttonElement.disabled = true;
         }
 
-        async function removeFavorite(stationId) {
-            if (!userId) return;
-            try {
-                const favDocRef = doc(db, `artifacts/${typeof __app_id !== 'undefined' ? __app_id : 'default-app-id'}/users/${userId}/favorites`, stationId);
-                await deleteDoc(favDocRef);
-            } catch (error) {
-                console.error("Error removing favorite: ", error);
-            }
+        function removeFavorite(stationId) {
+            favorites = favorites.filter(fav => fav.stationuuid !== stationId);
+            saveFavorites();
+            displayItems(favorites, favoritesContainer, true);
         }
-        
-        function listenForFavoriteChanges() {
-            if (!userId) return;
-            const favsCollectionRef = collection(db, `artifacts/${typeof __app_id !== 'undefined' ? __app_id : 'default-app-id'}/users/${userId}/favorites`);
-            onSnapshot(favsCollectionRef, snapshot => {
-                const favorites = snapshot.docs.map(doc => doc.data());
-                displayItems(favorites, favoritesContainer, true);
-            }, error => {
-                 console.error("Error listening to favorites:", error);
-                 favoritesContainer.innerHTML = `<p class="text-red-400 text-center p-4">Could not load favorites.</p>`;
-            });
-        }
+
 
         // --- Start the App ---
         initialize();
