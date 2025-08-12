@@ -276,11 +276,14 @@
             prevBtn.addEventListener('click', playPrevTrack);
             nextBtn.addEventListener('click', playNextTrack);
 
-            stopBtnMinimized.addEventListener('click', (e) => {
-                e.stopPropagation(); 
-                stopStation();
+            stopBtnMinimized.addEventListener('click', stopStation);
+            minimizedPlayer.addEventListener('click', (e) => {
+                // If the click was on the stop button, let its own handler deal with it.
+                if (e.target.closest('#stop-btn-minimized')) {
+                    return;
+                }
+                showFullscreenPlayer();
             });
-            minimizedPlayer.addEventListener('click', showFullscreenPlayer);
 
             audioPlayer.addEventListener('error', (e) => {
                 console.error("Audio playback error:", e);
@@ -565,18 +568,28 @@
             mainContent.classList.add('hidden');
         }
 
-        function minimizePlayerView(e) {
-            if (e) e.stopPropagation(); // Prevent any parent handlers from being notified of the event.
+        function minimizePlayerView() {
             fullscreenPlayer.classList.add('hidden');
-            minimizedPlayer.classList.remove('hidden');
             mainContent.classList.remove('hidden');
+            // Use a small timeout to prevent the click event from immediately re-triggering the player
+            setTimeout(() => {
+                minimizedPlayer.classList.remove('hidden');
+            }, 50);
         }
 
 
         // --- Favorite Functions (localStorage) ---
         function getFavorites() {
             const favoritesString = localStorage.getItem('media-player-favorites');
-            return favoritesString ? JSON.parse(favoritesString) : [];
+            if (!favoritesString) return [];
+            try {
+                return JSON.parse(favoritesString);
+            } catch (e) {
+                console.error("Error parsing favorites from localStorage", e);
+                // If parsing fails, the data is corrupt, so we clear it.
+                localStorage.removeItem('media-player-favorites');
+                return [];
+            }
         }
 
         function saveFavorites() {
