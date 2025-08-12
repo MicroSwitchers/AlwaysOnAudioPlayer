@@ -578,7 +578,8 @@
             mainContent.classList.add('hidden');
         }
 
-        function minimizePlayerView() {
+        function minimizePlayerView(e) {
+            if (e) e.stopPropagation(); // Prevent any parent handlers from being notified of the event.
             fullscreenPlayer.classList.add('hidden');
             minimizedPlayer.classList.remove('hidden');
             mainContent.classList.remove('hidden');
@@ -587,15 +588,31 @@
         // --- Firestore Favorite Functions ---
         async function addFavorite(stationData, buttonElement) {
             if (!userId) { alert("Sign-in required to save favorites."); return; }
+
+            // It's good practice to create a clean object for Firestore
+            const favoriteData = {
+                stationuuid: stationData.stationuuid,
+                name: stationData.name,
+                favicon: stationData.favicon,
+                url: stationData.url,
+                url_resolved: stationData.url_resolved,
+                tags: stationData.tags,
+                country: stationData.country,
+                countrycode: stationData.countrycode,
+                bitrate: stationData.bitrate,
+            };
+
             try {
                 const favDocRef = doc(db, `artifacts/${typeof __app_id !== 'undefined' ? __app_id : 'default-app-id'}/users/${userId}/favorites`, stationData.stationuuid);
-                await setDoc(favDocRef, stationData);
+                await setDoc(favDocRef, favoriteData);
+
                 buttonElement.innerHTML = '<i class="fas fa-heart"></i>'; // Solid heart
                 buttonElement.classList.remove('bg-slate-700', 'text-slate-300');
                 buttonElement.classList.add('bg-pink-500/20', 'text-pink-400');
                 buttonElement.disabled = true;
             } catch (error) {
                 console.error("Error adding favorite: ", error);
+                alert('Could not save favorite. There was an error connecting to the database.');
             }
         }
 
