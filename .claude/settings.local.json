@@ -11,7 +11,13 @@
       "Bash(git init:*)",
       "Bash(git add:*)",
       "Bash(dir /s /b nul 2)",
-      "Bash(nul)"
+      "Bash(nul)",
+      "Bash(git commit -m \"$(cat <<''EOF''\nInitial commit: Flutter media interface with curated radio\n\n- Cross-platform Flutter media player application for Raspberry Pi\n- Features: Local music library, internet radio, CD player\n- Curated radio stations: Arctic Outpost AM1270, KXLU 88.9 FM, KEXP 90.3 FM\n- Glass morphism UI with Material 3 design\n- Provider state management\n- Full-screen player with audio visualizer\n\n🤖 Generated with [Claude Code](https://claude.com/claude-code)\n\nCo-Authored-By: Claude <noreply@anthropic.com>\nEOF\n)\")",
+      "Bash(git remote add:*)",
+      "Bash(git branch:*)",
+      "Bash(git push:*)",
+      "Bash(git pull:*)",
+      "Bash(git stash)"
     ],
     "deny": [],
     "ask": []
