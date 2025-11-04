@@ -1,10 +1,20 @@
 # Raspberry Pi Installation Guide
 
+AlwaysOnAudioPlayer is a Flutter-based media player optimized for Raspberry Pi with 5-inch touchscreens.
+
+## Features
+- **Local Music Library**: Play audio files from your Raspberry Pi storage
+- **Internet Radio**: Browse and stream thousands of radio stations worldwide
+- **Curated Radio Stations**: Hand-picked quality stations including Arctic Outpost AM1270, KXLU 88.9 FM, and KEXP 90.3 FM
+- **Playlist Management**: Create and manage playlists
+- **Touch-Optimized UI**: Designed for 800x480 touchscreens with automatic scaling
+
 ## Hardware Requirements
-- Raspberry Pi 3B+ or newer (4 recommended)
+- Raspberry Pi 3B+ or newer (Pi 4 or 5 recommended)
 - 5-inch touchscreen display (800x480 recommended)
-- 8GB+ SD card
+- 16GB+ SD card (32GB+ recommended for music storage)
 - Audio output (3.5mm jack, HDMI, or USB audio)
+- Internet connection (WiFi or Ethernet for radio streaming)
 
 ## Software Setup
 
@@ -70,8 +80,10 @@ flutter build linux --release
 cd build/linux/arm64/release/bundle/
 
 # Run the application
-./rpi_media_interface
+./always_on_audio_player
 ```
+
+Note: The executable name may vary. Check the bundle directory for the actual filename.
 
 ## Performance Optimization
 
@@ -91,7 +103,7 @@ unclutter -idle 3 &
 
 # Start the app
 cd ~/AlwaysOnAudioPlayer/build/linux/arm64/release/bundle/
-./rpi_media_interface &
+./always_on_audio_player &
 EOF
 
 chmod +x ~/.config/openbox/autostart
@@ -105,8 +117,8 @@ echo "exec openbox-session" > ~/.xinitrc
 # Edit autostart
 sudo nano /etc/xdg/lxsession/LXDE-pi/autostart
 
-# Add this line:
-@/home/pi/AlwaysOnAudioPlayer/build/linux/arm64/release/bundle/rpi_media_interface
+# Add this line (adjust path if needed):
+@/home/pi/AlwaysOnAudioPlayer/build/linux/arm64/release/bundle/always_on_audio_player
 ```
 
 ### 3. Touch Screen Calibration
@@ -165,10 +177,13 @@ defaults.ctl.card X
 ### App doesn't start
 ```bash
 # Check dependencies
-ldd build/linux/arm64/release/bundle/rpi_media_interface
+ldd build/linux/arm64/release/bundle/always_on_audio_player
 
 # Run with verbose output
 flutter run -v -d linux
+
+# Check for missing libraries
+flutter doctor -v
 ```
 
 ### Touch not working
@@ -236,13 +251,13 @@ Option "CalibrationMatrix" "0 1 0 -1 0 1 0 0 1"  # For 90° rotation
 
 Create systemd service:
 ```bash
-sudo nano /etc/systemd/system/media-interface.service
+sudo nano /etc/systemd/system/always-on-audio.service
 ```
 
 Add:
 ```ini
 [Unit]
-Description=RPI Media Interface
+Description=AlwaysOnAudioPlayer
 After=graphical.target
 
 [Service]
@@ -251,7 +266,7 @@ User=pi
 Environment=DISPLAY=:0
 Environment=XAUTHORITY=/home/pi/.Xauthority
 WorkingDirectory=/home/pi/AlwaysOnAudioPlayer/build/linux/arm64/release/bundle
-ExecStart=/home/pi/AlwaysOnAudioPlayer/build/linux/arm64/release/bundle/rpi_media_interface
+ExecStart=/home/pi/AlwaysOnAudioPlayer/build/linux/arm64/release/bundle/always_on_audio_player
 Restart=always
 
 [Install]
@@ -260,8 +275,14 @@ WantedBy=graphical.target
 
 Enable and start:
 ```bash
-sudo systemctl enable media-interface
-sudo systemctl start media-interface
+sudo systemctl enable always-on-audio
+sudo systemctl start always-on-audio
+
+# Check status
+sudo systemctl status always-on-audio
+
+# View logs
+sudo journalctl -u always-on-audio -f
 ```
 
 ## UI Optimizations for 5" Screen
@@ -307,8 +328,13 @@ xset s noblank
 ```bash
 cd ~/AlwaysOnAudioPlayer
 git pull
+flutter pub get
 flutter build linux --release
-sudo systemctl restart media-interface
+
+# If running as service:
+sudo systemctl restart always-on-audio
+
+# Or restart manually if not using service
 ```
 
 ## Support

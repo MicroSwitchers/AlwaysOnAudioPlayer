@@ -1,6 +1,6 @@
-# RPI Media Interface
+# AlwaysOnAudioPlayer
 
-A comprehensive Flutter-based media player interface optimized for Raspberry Pi with 5-inch touchscreens. This application supports local music playback, internet radio streaming, and CD playback, and can run on Linux, Windows, and web platforms.
+A comprehensive Flutter-based media player interface optimized for Raspberry Pi with 5-inch touchscreens. This application supports local music playback, internet radio streaming, and curated radio stations. Designed for Linux, Windows, and web platforms.
 
 ## 🎯 Optimized for Raspberry Pi 5" Displays
 - **Auto-scaling UI** for 800x480 screens
@@ -28,12 +28,12 @@ A comprehensive Flutter-based media player interface optimized for Raspberry Pi 
 - Integration with Radio Browser API
 - Display station metadata and artwork
 
-### CD Player (Linux Only)
-- Detect and play audio CDs
-- Track listing and playback
-- CD eject functionality
-- Support for cdparanoia for audio extraction
-- Configurable CD drive path
+### Curated Radio Stations
+- Hand-picked quality radio stations
+- Arctic Outpost AM1270 - Ambient/atmospheric music
+- KXLU 88.9 FM - College radio from Los Angeles
+- KEXP 90.3 FM - Eclectic music from Seattle
+- More curated stations available
 
 ### Player Features
 - Full playback controls (play, pause, skip, seek)
@@ -49,32 +49,24 @@ A comprehensive Flutter-based media player interface optimized for Raspberry Pi 
 - Flutter SDK (3.0.0 or higher)
 - Dart SDK (3.0.0 or higher)
 
-### For Linux CD Playback
-- Linux operating system
-- CD-ROM drive
-- `cdparanoia` (optional, for better CD support)
+### For Raspberry Pi
+- Raspberry Pi 3B+ or newer (Pi 4 or 5 recommended)
+- 2GB+ RAM (4GB+ recommended)
+- 5-inch touchscreen display (800x480 recommended)
 
 ## Installation
 
-### 1. Clone or Download the Project
+### 1. Clone the Project
 
 ```bash
-cd "d:\My Code\DartFlutter\DF Media Interface RPI"
+git clone https://github.com/MicroSwitchers/AlwaysOnAudioPlayer.git
+cd AlwaysOnAudioPlayer
 ```
 
 ### 2. Install Dependencies
 
 ```bash
 flutter pub get
-```
-
-### 3. Install Linux Tools (For CD Playback)
-
-On Raspberry Pi or Linux:
-
-```bash
-sudo apt-get update
-sudo apt-get install cdparanoia
 ```
 
 ## Running the Application
@@ -113,14 +105,6 @@ flutter run -d linux --release
 
 ## Configuration
 
-### CD Drive Path
-
-By default, the CD drive is set to `/dev/cdrom`. You can change this in the app:
-
-1. Navigate to the CD Player tab
-2. Tap the Settings icon
-3. Enter your CD drive path (e.g., `/dev/sr0`, `/dev/cdrom1`)
-
 ### Music Directories
 
 To add music directories:
@@ -134,27 +118,31 @@ To add music directories:
 
 ```
 lib/
-├── main.dart                 # App entry point
-├── models/                   # Data models
+├── main.dart                      # App entry point
+├── models/                        # Data models
 │   ├── media_item.dart
 │   ├── playlist.dart
 │   └── radio_station.dart
-├── services/                 # Business logic
+├── services/                      # Business logic
 │   ├── audio_player_service.dart
-│   ├── cd_player_service.dart
+│   ├── music_library_service.dart
 │   ├── local_music_service.dart
 │   ├── radio_service.dart
+│   ├── curated_radio_service.dart
+│   ├── playlist_service.dart
+│   ├── settings_service.dart
 │   └── storage_service.dart
-├── screens/                  # UI screens
+├── screens/                       # UI screens
 │   ├── home_screen.dart
+│   ├── library_screen.dart
 │   ├── local_music_screen.dart
 │   ├── radio_screen.dart
-│   └── cd_player_screen.dart
-└── widgets/                  # Reusable UI components
+│   ├── curated_radio_screen.dart
+│   └── playlists_screen.dart
+└── widgets/                       # Reusable UI components
     ├── media_list_item.dart
     ├── now_playing_bar.dart
-    ├── player_controls.dart
-    └── radio_station_item.dart
+    └── player_controls.dart
 ```
 
 ## Key Technologies
@@ -167,22 +155,15 @@ lib/
 
 ## Platform Support
 
-| Feature | Web | Linux | Notes |
-|---------|-----|-------|-------|
-| Local Music | ✅ | ✅ | File picker works on both |
-| Internet Radio | ✅ | ✅ | Fully supported |
-| CD Playback | ❌ | ✅ | Linux only |
-| File System Access | Limited | ✅ | Web has browser restrictions |
+| Feature | Web | Linux | Windows | Notes |
+|---------|-----|-------|---------|-------|
+| Local Music | ✅ | ✅ | ✅ | File picker works on all |
+| Internet Radio | ✅ | ✅ | ✅ | Fully supported |
+| Curated Radio | ✅ | ✅ | ✅ | Fully supported |
+| Playlists | ✅ | ✅ | ✅ | Local storage based |
+| File System Access | Limited | ✅ | ✅ | Web has browser restrictions |
 
 ## Troubleshooting
-
-### CD Not Detected
-
-1. Ensure you're running on Linux
-2. Check that `cdparanoia` is installed: `which cdparanoia`
-3. Verify CD drive path in settings
-4. Check drive permissions: `ls -l /dev/cdrom`
-5. Try mounting manually: `sudo mount /dev/cdrom /media/cdrom`
 
 ### Audio Not Playing
 
@@ -232,11 +213,12 @@ This project is open source and available for personal and commercial use.
 
 ## Future Enhancements
 
-- [ ] Metadata editing for local files
-- [ ] Advanced playlist management
+- [ ] Album artwork display and editing
+- [ ] Advanced playlist management (export/import)
 - [ ] Equalizer controls
 - [ ] Podcast support
-- [ ] Cloud music integration
+- [ ] Cloud music integration (Spotify, etc.)
 - [ ] Last.fm scrobbling
 - [ ] Sleep timer
 - [ ] Lyrics display
+- [ ] Voice control integration
