@@ -11,6 +11,7 @@ class StorageService {
   static const String _keyCdDrivePath = 'cd_drive_path';
   static const String _keyVolume = 'volume';
   static const String _keyLastPlayedUri = 'last_played_uri';
+  static const String _keyPlayerBarPosition = 'player_bar_position';
 
   SharedPreferences? _prefs;
 
@@ -94,6 +95,15 @@ class StorageService {
 
   Future<String?> loadLastPlayedUri() async {
     return _prefs?.getString(_keyLastPlayedUri);
+  }
+
+  // Player Bar Position
+  Future<void> savePlayerBarPosition(String position) async {
+    await _prefs?.setString(_keyPlayerBarPosition, position);
+  }
+
+  Future<String?> loadPlayerBarPosition() async {
+    return _prefs?.getString(_keyPlayerBarPosition);
   }
 
   // Clear all data

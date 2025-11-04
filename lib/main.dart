@@ -6,6 +6,7 @@ import 'services/radio_service.dart';
 import 'services/curated_radio_service.dart';
 import 'services/playlist_service.dart';
 import 'services/storage_service.dart';
+import 'services/settings_service.dart';
 import 'services/window_service.dart';
 import 'screens/home_screen.dart';
 import 'theme/app_theme.dart';
@@ -66,6 +67,9 @@ class _MyAppState extends State<MyApp> {
         ChangeNotifierProvider(
           create: (_) => PlaylistService(widget.storageService),
         ),
+        ChangeNotifierProvider(
+          create: (_) => SettingsService(widget.storageService),
+        ),
         Provider.value(value: widget.storageService),
       ],
       child: Consumer<AudioPlayerService>(
@@ -80,9 +84,22 @@ class _MyAppState extends State<MyApp> {
             darkTheme: AppTheme.dark(),
             themeMode: ThemeMode.system,
             home: const HomeScreen(),
+            // Optimize for performance on Raspberry Pi
+            showPerformanceOverlay: false,
+            checkerboardRasterCacheImages: false,
+            checkerboardOffscreenLayers: false,
             builder: (context, child) {
-              // Temporarily disable AuroraBackground to test if it's blocking input
-              return child ?? const SizedBox.shrink();
+              // Apply text scaling for small screens
+              final mediaQuery = MediaQuery.of(context);
+              final size = mediaQuery.size;
+              final isSmallScreen = size.shortestSide < 500;
+              
+              return MediaQuery(
+                data: mediaQuery.copyWith(
+                  textScaleFactor: isSmallScreen ? 0.9 : 1.0,
+                ),
+                child: child ?? const SizedBox.shrink(),
+              );
             },
           );
         },

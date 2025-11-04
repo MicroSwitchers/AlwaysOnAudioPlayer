@@ -1,6 +1,16 @@
 # RPI Media Interface
 
-A comprehensive Flutter-based media player interface designed for Raspberry Pi. This application supports local music playback, internet radio streaming, and CD playback, and can run both as a web application and natively on Linux.
+A comprehensive Flutter-based media player interface optimized for Raspberry Pi with 5-inch touchscreens. This application supports local music playback, internet radio streaming, and CD playback, and can run on Linux, Windows, and web platforms.
+
+## 🎯 Optimized for Raspberry Pi 5" Displays
+- **Auto-scaling UI** for 800x480 screens
+- **Touch-optimized** controls (44px minimum targets)
+- **Performance tuned** for Raspberry Pi 3B+ and newer
+- **Low memory footprint** suitable for 2GB+ devices
+- **Configurable navigation** (bottom/top/left/right positions)
+
+📖 **See [RASPBERRY_PI_SETUP.md](RASPBERRY_PI_SETUP.md)** for complete installation guide
+📊 **See [RPI_5INCH_OPTIMIZATIONS.md](RPI_5INCH_OPTIMIZATIONS.md)** for optimization details
 
 ## Features
 

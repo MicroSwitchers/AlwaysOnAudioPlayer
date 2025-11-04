@@ -28,14 +28,12 @@ class LocalMusicService extends ChangeNotifier {
     try {
       String? selectedDirectory = await FilePicker.platform.getDirectoryPath();
 
-      if (selectedDirectory != null) {
-        if (!_musicDirectories.contains(selectedDirectory)) {
-          _musicDirectories.add(selectedDirectory);
-          notifyListeners();
-          await scanDirectory(selectedDirectory);
-        }
+      if (selectedDirectory != null && !_musicDirectories.contains(selectedDirectory)) {
+        _musicDirectories.add(selectedDirectory);
+        notifyListeners();
+        await scanDirectory(selectedDirectory);
       }
-    } catch (e) {
+        } catch (e) {
       debugPrint('Error selecting directory: $e');
     }
   }

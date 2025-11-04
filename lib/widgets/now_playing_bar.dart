@@ -10,7 +10,12 @@ import 'animated_progress_bar.dart';
 import 'glass_container.dart';
 
 class NowPlayingBar extends StatelessWidget {
-  const NowPlayingBar({super.key});
+  final Axis orientation;
+  
+  const NowPlayingBar({
+    super.key,
+    this.orientation = Axis.horizontal,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -23,6 +28,10 @@ class NowPlayingBar extends StatelessWidget {
     final progress = playerService.duration.inSeconds > 0
         ? playerService.position.inSeconds / playerService.duration.inSeconds
         : 0.0;
+
+    if (orientation == Axis.vertical) {
+      return _buildVerticalBar(context, playerService, media, progress, isCompact);
+    }
 
     return Padding(
       padding: EdgeInsets.fromLTRB(
@@ -483,6 +492,185 @@ class NowPlayingBar extends StatelessWidget {
       case MediaType.cdTrack:
         return Icons.album_rounded;
     }
+  }
+
+  Widget _buildVerticalBar(
+    BuildContext context,
+    AudioPlayerService playerService,
+    MediaItem media,
+    double progress,
+    bool isCompact,
+  ) {
+    return Container(
+      width: 80,
+      padding: EdgeInsets.symmetric(
+        vertical: LayoutConfig.verticalPadding(context),
+        horizontal: LayoutConfig.horizontalPadding(context) * 0.5,
+      ),
+      child: GlassContainer(
+        borderRadius: BorderRadius.circular(28),
+        padding: EdgeInsets.symmetric(
+          vertical: LayoutConfig.verticalPadding(context),
+          horizontal: 8,
+        ),
+        child: Material(
+          color: Colors.transparent,
+          child: InkWell(
+            borderRadius: BorderRadius.circular(28),
+            onTap: () => _showFullPlayer(context),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                // Artwork
+                Hero(
+                  tag: 'now_playing_artwork',
+                  child: AnimatedContainer(
+                    duration: const Duration(milliseconds: 300),
+                    width: 56,
+                    height: 56,
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
+                        colors: [
+                          Theme.of(context).colorScheme.primary,
+                          Theme.of(context).colorScheme.secondary,
+                          Theme.of(context).colorScheme.tertiary,
+                        ],
+                      ),
+                      borderRadius: BorderRadius.circular(8),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Theme.of(context)
+                              .colorScheme
+                              .primary
+                              .withValues(
+                                  alpha: playerService.playerState ==
+                                          PlayerState.playing
+                                      ? 0.5
+                                      : 0.3),
+                          blurRadius:
+                              playerService.playerState == PlayerState.playing
+                                  ? 12
+                                  : 8,
+                          spreadRadius:
+                              playerService.playerState == PlayerState.playing
+                                  ? 2
+                                  : 1,
+                        ),
+                      ],
+                    ),
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(
+                          _getMediaIcon(media.type),
+                          color: Colors.white.withValues(alpha: 0.9),
+                          size: 20,
+                        ),
+                        const SizedBox(height: 4),
+                        if (playerService.playerState == PlayerState.playing)
+                          AudioVisualizer(
+                            isPlaying: true,
+                            colors: [
+                              Colors.white,
+                              Colors.white.withValues(alpha: 0.8),
+                              Colors.cyan.shade200,
+                              Colors.purple.shade200,
+                            ],
+                            barCount: 5,
+                            width: 32,
+                            height: 14,
+                            animateColors: true,
+                          )
+                        else
+                          const SizedBox(height: 14),
+                      ],
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 16),
+                // Play/Pause button
+                Container(
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      colors: [
+                        Theme.of(context).colorScheme.primary,
+                        Theme.of(context).colorScheme.secondary,
+                      ],
+                    ),
+                    shape: BoxShape.circle,
+                    boxShadow: [
+                      BoxShadow(
+                        color: Theme.of(context)
+                            .colorScheme
+                            .primary
+                            .withValues(alpha: 0.35),
+                        blurRadius: 18,
+                        offset: const Offset(0, 6),
+                      ),
+                    ],
+                  ),
+                  child: IconButton(
+                    iconSize: 28,
+                    icon: Icon(
+                      playerService.playerState == PlayerState.playing
+                          ? Icons.pause_rounded
+                          : Icons.play_arrow_rounded,
+                      color: Colors.white,
+                    ),
+                    onPressed: () {
+                      if (playerService.playerState == PlayerState.playing) {
+                        playerService.pause();
+                      } else {
+                        playerService.resume();
+                      }
+                    },
+                  ),
+                ),
+                const SizedBox(height: 12),
+                // Previous button
+                if (playerService.hasPrevious)
+                  IconButton(
+                    iconSize: 22,
+                    icon: const Icon(Icons.skip_previous_rounded),
+                    onPressed: () => playerService.previous(),
+                  ),
+                // Next button
+                if (playerService.hasNext)
+                  IconButton(
+                    iconSize: 22,
+                    icon: const Icon(Icons.skip_next_rounded),
+                    onPressed: () => playerService.next(),
+                  ),
+                const Spacer(),
+                // Vertical progress indicator
+                RotatedBox(
+                  quarterTurns: 0,
+                  child: SizedBox(
+                    width: 56,
+                    height: 4,
+                    child: AnimatedProgressBar(
+                      progress: progress,
+                      isPlaying:
+                          playerService.playerState == PlayerState.playing,
+                      isLoading:
+                          playerService.playerState == PlayerState.loading,
+                      primaryColor: Theme.of(context).colorScheme.secondary,
+                      backgroundColor: Theme.of(context)
+                          .colorScheme
+                          .secondary
+                          .withValues(alpha: 0.18),
+                      height: 4,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
   }
 
   String _formatDuration(Duration duration) {
