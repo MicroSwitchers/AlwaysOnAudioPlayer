@@ -33,7 +33,7 @@ class LocalMusicService extends ChangeNotifier {
         notifyListeners();
         await scanDirectory(selectedDirectory);
       }
-        } catch (e) {
+    } catch (e) {
       debugPrint('Error selecting directory: $e');
     }
   }

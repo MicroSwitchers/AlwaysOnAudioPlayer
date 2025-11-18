@@ -8,6 +8,7 @@ import 'services/playlist_service.dart';
 import 'services/storage_service.dart';
 import 'services/settings_service.dart';
 import 'services/window_service.dart';
+import 'services/cd_player_service.dart';
 import 'screens/home_screen.dart';
 import 'theme/app_theme.dart';
 
@@ -64,6 +65,7 @@ class _MyAppState extends State<MyApp> {
         ChangeNotifierProvider(create: (_) => MusicLibraryService()),
         ChangeNotifierProvider(create: (_) => RadioService()),
         ChangeNotifierProvider(create: (_) => CuratedRadioService()),
+        ChangeNotifierProvider(create: (_) => CdPlayerService()),
         ChangeNotifierProvider(
           create: (_) => PlaylistService(widget.storageService),
         ),

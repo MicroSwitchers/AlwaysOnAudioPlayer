@@ -563,7 +563,7 @@ class _LibraryScreenState extends State<LibraryScreen>
           );
         }
       }
-        } catch (e) {
+    } catch (e) {
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('Error adding folder: $e')),
